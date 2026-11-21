@@ -63,6 +63,7 @@ lib/
 - 7 档字号（11/12/13/14/16/20/26）、4 档圆角 + 胶囊（6/10/14/20/999）、4pt 间距节奏
 - 120/200/280ms 动效时长与 `ease-out / ease-in-out / spring` 缓动令牌
 - 设置页可切换浅色 / 深色 / 跟随系统
+- 应用图标源图保存在 `assets/branding/app_icon_source.png`，裁切版 `app_icon.png` 同时用于登录页品牌标识；Android/iOS 启动图标均由该图生成
 
 移动端交互约定：
 

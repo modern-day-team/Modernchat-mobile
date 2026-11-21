@@ -66,16 +66,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Container(
-                        width: 56,
-                        height: 56,
+                        width: 64,
+                        height: 64,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
+                          color: theme.colorScheme.surface,
                           borderRadius: AppTokens.radiusLgBorder,
                         ),
-                        child: Icon(
-                          Icons.chat_bubble_outline,
-                          color: theme.colorScheme.primary,
-                          size: 28,
+                        child: ClipRRect(
+                          borderRadius: AppTokens.radiusMdBorder,
+                          child: Image.asset(
+                            'assets/branding/app_icon.png',
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            cacheWidth: 128,
+                            filterQuality: FilterQuality.medium,
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppTokens.spaceLg),
