@@ -1,30 +1,80 @@
+import '../../../../core/model/models.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/storage_service.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
+import '../models/auth_body.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  const AuthRepositoryImpl(this._remoteDataSource);
+  const AuthRepositoryImpl({
+    required this.remote,
+    required this.storage,
+    required this.apiClient,
+  });
 
-  final AuthRemoteDataSource _remoteDataSource;
+  final AuthRemoteDataSource remote;
+  final StorageService storage;
+  final ApiClient apiClient;
 
   @override
-  Future<AppUser> login({
+  Future<AuthResult> login({
     required String username,
     required String password,
   }) async {
-    final data = await _remoteDataSource.login(
-      username: username,
-      password: password,
-    );
-    return AppUser(
-      id: data['id'] as String? ?? '',
-      username: data['username'] as String? ?? username,
-      displayName: data['displayName'] as String?,
-    );
+    final result = await remote.login(username, password);
+    await _persist(result);
+    return result;
   }
 
   @override
+  Future<AuthResult> register({
+    required String username,
+    required String password,
+    required String nickname,
+    String? inviteCode,
+    String? email,
+    String? emailCode,
+  }) async {
+    final result = await remote.register(RegisterBody(
+      username: username,
+      password: password,
+      nickname: nickname,
+      inviteCode: inviteCode,
+      email: email,
+      emailCode: emailCode,
+    ));
+    await _persist(result);
+    return result;
+  }
+
+  @override
+  Future<User> currentUser() => remote.currentUser();
+
+  @override
   Future<void> logout() async {
-    // Token 清理由 core/storage 负责，此处保留领域契约。
+    try {
+      await remote.logout();
+    } finally {
+      await storage.clearToken();
+      apiClient.clearToken();
+    }
+  }
+
+  @override
+  Future<void> restoreSession(String token) async {
+    apiClient.setToken(token);
+    try {
+      await remote.currentUser();
+    } catch (_) {
+      await storage.clearToken();
+      apiClient.clearToken();
+      rethrow;
+    }
+  }
+
+  Future<void> _persist(AuthResult result) async {
+    apiClient.setToken(result.token);
+    await storage.saveToken(result.token);
   }
 }

@@ -6,7 +6,7 @@ class LoginUseCase {
 
   final AuthRepository _repository;
 
-  Future<AppUser> call({
+  Future<AuthResult> call({
     required String username,
     required String password,
   }) {

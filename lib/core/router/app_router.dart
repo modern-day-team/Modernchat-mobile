@@ -2,30 +2,34 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
-import '../../features/chat/presentation/pages/chat_list_page.dart';
-import '../../features/contacts/presentation/pages/contacts_page.dart';
-import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
+import 'app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final auth = ref.watch(authControllerProvider);
+  final isAuthenticated = auth.value?.isAuthenticated ?? false;
+
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
     routes: [
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
-        path: '/chats',
-        builder: (context, state) => const ChatListPage(),
-      ),
-      GoRoute(
-        path: '/contacts',
-        builder: (context, state) => const ContactsPage(),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsPage(),
+        path: '/',
+        builder: (context, state) =>
+            isAuthenticated ? const AppShell() : const LoginPage(),
       ),
     ],
+    redirect: (context, state) {
+      if (!isAuthenticated && state.matchedLocation != '/login') {
+        return '/login';
+      }
+      if (isAuthenticated && state.matchedLocation == '/login') {
+        return '/';
+      }
+      return null;
+    },
   );
 });
