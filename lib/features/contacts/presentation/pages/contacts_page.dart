@@ -35,14 +35,24 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
 
   @override
   Widget build(BuildContext context) {
+    final pendingRequests = ref.watch(
+      friendRequestProvider.select((value) => value.value?.length ?? 0),
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('联系人'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: '好友'),
-            Tab(text: '申请'),
+          tabs: [
+            const Tab(text: '好友'),
+            Tab(
+              child: Badge(
+                label: Text('$pendingRequests'),
+                isLabelVisible: pendingRequests > 0,
+                child: const Text('申请'),
+              ),
+            ),
           ],
         ),
       ),
@@ -111,7 +121,11 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
                     item.friend.username.contains(_keyword))
                 .toList();
         if (filtered.isEmpty) {
-          return _empty('暂无好友', '点击右下角 + 添加好友');
+          return AppEmptyState(
+            icon: Icons.people_outline,
+            title: '暂无好友',
+            subtitle: _keyword.isEmpty ? '点击右下角 + 添加好友' : '换个关键词试试',
+          );
         }
         return RefreshIndicator(
           onRefresh: () => ref.read(friendListProvider.notifier).refresh(),
@@ -133,7 +147,10 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _error(error),
+      error: (error, _) => AppErrorState(
+        error: error,
+        onRetry: () => ref.read(friendListProvider.notifier).refresh(),
+      ),
     );
   }
 
@@ -141,7 +158,13 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
     final requests = ref.watch(friendRequestProvider);
     return requests.when(
       data: (list) {
-        if (list.isEmpty) return _empty('暂无好友申请', '有新的申请会显示在这里');
+        if (list.isEmpty) {
+          return AppEmptyState(
+            icon: Icons.person_add_outlined,
+            title: '暂无好友申请',
+            subtitle: '有新的申请会显示在这里',
+          );
+        }
         return RefreshIndicator(
           onRefresh: () => ref.read(friendRequestProvider.notifier).refresh(),
           child: ListView.builder(
@@ -187,35 +210,12 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _error(error),
+      error: (error, _) => AppErrorState(
+        error: error,
+        onRetry: () => ref.read(friendRequestProvider.notifier).refresh(),
+      ),
     );
   }
-
-  Widget _empty(String title, String subtitle) => ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 96),
-          const Icon(Icons.people_outline, size: 48, color: AppTokens.inkFaint),
-          const SizedBox(height: AppTokens.spaceLg),
-          Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: AppTokens.emphasis)),
-          const SizedBox(height: AppTokens.spaceSm),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: AppTokens.sm,
-              color: AppTokens.inkFaint,
-            ),
-          ),
-        ],
-      );
-
-  Widget _error(Object error) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spaceXxl),
-          child: Text('加载失败：$error'),
-        ),
-      );
 
   Future<void> _showAddFriend() async {
     final username = await showModalBottomSheet<String>(

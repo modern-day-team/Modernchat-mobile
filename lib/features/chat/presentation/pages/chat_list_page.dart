@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/model/models.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/ui/ui.dart';
 import '../providers/chat_providers.dart';
 import 'chat_room_page.dart';
 import '../widgets/conversation_actions_sheet.dart';
@@ -59,33 +60,73 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
           _searchBar(theme),
           Expanded(
             child: conversations.when(
-              data: (list) => RefreshIndicator(
-                onRefresh: () =>
-                    ref.read(conversationListProvider.notifier).refresh(),
-                child: list.isEmpty
-                    ? _emptyState(theme)
-                    : ListView.builder(
-                        controller: _scrollController,
-                        itemCount: list.length,
-                        itemBuilder: (context, index) {
-                          final conversation = list[index];
-                          return ConversationTile(
-                            key: ValueKey(conversation.id),
-                            conversation: conversation,
-                            onTap: () => _openRoom(conversation),
-                            onLongPress: () => _showActions(conversation),
-                          );
-                        },
-                      ),
-              ),
+              data: (list) => _conversationList(theme, list),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => _errorState(theme, error),
+              error: (error, _) => AppErrorState(
+                error: error,
+                onRetry: () =>
+                    ref.read(conversationListProvider.notifier).refresh(),
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _conversationList(ThemeData theme, List<Conversation> list) {
+    if (list.isEmpty) {
+      return AppEmptyState(
+        icon: Icons.chat_bubble_outline,
+        title: _searching ? '没有匹配的会话' : '还没有会话',
+        subtitle: _searching ? '换个关键词试试' : '点击右上角 + 发起新会话',
+      );
+    }
+
+    final pinned = list.where((item) => item.pinned).toList();
+    final recent = list.where((item) => !item.pinned).toList();
+    final entries = <Object>[
+      if (pinned.isNotEmpty) '置顶',
+      ...pinned,
+      if (recent.isNotEmpty) '最近',
+      ...recent,
+    ];
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(conversationListProvider.notifier).refresh(),
+      child: ListView.builder(
+        controller: _scrollController,
+        itemCount: entries.length,
+        itemBuilder: (context, index) {
+          final entry = entries[index];
+          if (entry is String) return _sectionHeader(theme, entry);
+          final conversation = entry as Conversation;
+          return ConversationTile(
+            key: ValueKey(conversation.id),
+            conversation: conversation,
+            onTap: () => _openRoom(conversation),
+            onLongPress: () => _showActions(conversation),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _sectionHeader(ThemeData theme, String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppTokens.spaceLg,
+          AppTokens.spaceMd,
+          AppTokens.spaceLg,
+          AppTokens.spaceXs,
+        ),
+        child: Text(
+          text,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
 
   Widget _searchBar(ThemeData theme) {
     return Container(
@@ -105,19 +146,22 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceMd,
           ),
-          suffixIcon: _searchController.text.isEmpty
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searching = false);
-                    FocusScope.of(context).unfocus();
-                    ref.read(conversationListProvider.notifier).refresh();
-                  },
-                ),
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _searchController,
+            builder: (context, value, _) {
+              if (value.text.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searching = false);
+                  FocusScope.of(context).unfocus();
+                  ref.read(conversationListProvider.notifier).refresh();
+                },
+              );
+            },
+          ),
         ),
-        onChanged: (_) => setState(() {}),
         onSubmitted: (value) {
           final keyword = value.trim();
           setState(() => _searching = keyword.isNotEmpty);
@@ -130,48 +174,6 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
       ),
     );
   }
-
-  Widget _emptyState(ThemeData theme) => ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 96),
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 48,
-            color: theme.colorScheme.outline,
-          ),
-          const SizedBox(height: AppTokens.spaceLg),
-          Text(
-            _searching ? '没有匹配的会话' : '还没有会话',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: AppTokens.spaceSm),
-          Text(
-            _searching ? '换个关键词试试' : '点击右上角 + 发起新会话',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
-      );
-
-  Widget _errorState(ThemeData theme, Object error) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.spaceXxl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('加载失败：$error', textAlign: TextAlign.center),
-              const SizedBox(height: AppTokens.spaceMd),
-              FilledButton(
-                onPressed: () =>
-                    ref.read(conversationListProvider.notifier).refresh(),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ),
-      );
 
   void _openRoom(Conversation conversation) {
     Navigator.of(context).push(
@@ -314,7 +316,7 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('创建失败：$e')),
+          SnackBar(content: Text('操作失败：$e')),
         );
       }
     }

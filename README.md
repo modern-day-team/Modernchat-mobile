@@ -62,8 +62,9 @@ lib/
 - 品牌蓝 `#0052D9`（深色 `#7CB8FF`），品牌色只用于主按钮、选中态、未读等关键位置
 - 7 档字号（11/12/13/14/16/20/26）、4 档圆角 + 胶囊（6/10/14/20/999）、4pt 间距节奏
 - 120/200/280ms 动效时长与 `ease-out / ease-in-out / spring` 缓动令牌
-- 设置页可切换浅色 / 深色 / 跟随系统
-- 应用图标源图保存在 `assets/branding/app_icon_source.png`，裁切版 `app_icon.png` 同时用于登录页品牌标识；Android/iOS 启动图标均由该图生成
+- 设置页可切换浅色 / 深色 / 跟随系统，使用紧凑的分段控件
+- 应用图标源图保存在 `assets/branding/app_icon_source.png`，裁切版 `app_icon.png` 同时用于登录页 / 设置页品牌标识；Android/iOS 启动图标均由该图生成
+- 会话列表按「置顶 / 最近」分组，好友申请 Tab 显示待处理数量，聊天记录按日期分隔
 
 移动端交互约定：
 
@@ -78,6 +79,8 @@ lib/
 - 认证只订阅 `authUserIdProvider`，避免整个 `AuthState` 变化导致聊天页重建
 - WS 触发的会话列表刷新做 260ms 节流，避免高频消息导致整表反复请求与重建
 - 本地搜索先过滤已加载的好友，不增加额外请求
+- 输入框状态用 `ValueListenableBuilder` 局部更新，避免每次按键重建整个页面
+- 空态 / 错误态统一由 `core/ui/app_state_view.dart` 提供
 
 ## API 对接
 

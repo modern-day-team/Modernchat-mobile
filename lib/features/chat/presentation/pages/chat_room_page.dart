@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/model/models.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/ui/ui.dart';
 import '../providers/chat_providers.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/message_date_separator.dart';
 
 class ChatRoomPage extends ConsumerStatefulWidget {
   const ChatRoomPage({super.key, required this.conversation});
@@ -18,16 +20,6 @@ class ChatRoomPage extends ConsumerStatefulWidget {
 class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  bool _canSend = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(() {
-      final canSend = _controller.text.trim().isNotEmpty;
-      if (canSend != _canSend) setState(() => _canSend = canSend);
-    });
-  }
 
   @override
   void dispose() {
@@ -64,21 +56,39 @@ class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
             child: GestureDetector(
               onTap: () => FocusScope.of(context).unfocus(),
               child: messages.when(
-                data: (list) => ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
-                  itemCount: list.length,
-                  itemBuilder: (context, index) {
-                    final message = list[list.length - 1 - index];
-                    return MessageBubble(
-                      key: ValueKey(message.id),
-                      message: message,
-                      isMine: message.senderId == myId,
-                    );
-                  },
-                ),
+                data: (list) => list.isEmpty
+                    ? AppEmptyState(
+                        icon: Icons.chat_bubble_outline,
+                        title: '还没有消息',
+                        subtitle: '发送第一条消息开始聊天',
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        reverse: true,
+                        itemCount: list.length,
+                        itemBuilder: (context, index) {
+                          final message = list[list.length - 1 - index];
+                          final older = index + 1 < list.length
+                              ? list[list.length - 2 - index]
+                              : null;
+                          final showDate = older == null ||
+                              !_sameDay(older.createdAt, message.createdAt);
+                          return Column(
+                            key: ValueKey(message.id),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (showDate)
+                                MessageDateSeparator(iso: message.createdAt),
+                              MessageBubble(
+                                message: message,
+                                isMine: message.senderId == myId,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text('加载失败：$error')),
+                error: (error, _) => AppErrorState(error: error),
               ),
             ),
           ),
@@ -88,6 +98,15 @@ class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
     );
   }
 
+  bool _sameDay(String a, String b) {
+    final first = DateTime.tryParse(a)?.toLocal();
+    final second = DateTime.tryParse(b)?.toLocal();
+    if (first == null || second == null) return false;
+    return first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
+  }
+
   Widget _composer(ThemeData theme) {
     return SafeArea(
       top: false,
@@ -95,7 +114,9 @@ class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           border: Border(
-            top: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+            top: BorderSide(
+              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+            ),
           ),
         ),
         padding: const EdgeInsets.fromLTRB(
@@ -127,18 +148,21 @@ class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
               ),
             ),
             const SizedBox(width: AppTokens.spaceSm),
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: FilledButton(
-                onPressed: _canSend ? _send : null,
-                style: FilledButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppTokens.pillBorder,
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _controller,
+              builder: (context, value, _) => SizedBox(
+                width: 44,
+                height: 44,
+                child: FilledButton(
+                  onPressed: value.text.trim().isEmpty ? null : _send,
+                  style: FilledButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppTokens.pillBorder,
+                    ),
                   ),
+                  child: const Icon(Icons.arrow_upward, size: 20),
                 ),
-                child: const Icon(Icons.arrow_upward, size: 20),
               ),
             ),
           ],

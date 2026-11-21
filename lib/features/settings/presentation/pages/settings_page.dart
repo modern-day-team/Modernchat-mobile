@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/model/models.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/theme/theme_provider.dart';
-import '../../../../core/ui/ui.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -25,21 +24,24 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: AppTokens.spaceLg),
           _sectionTitle(theme, '外观'),
           Card(
-            child: Column(
-              children: [
-                for (final mode in ThemeMode.values)
-                  ListTile(
-                    title: Text(_themeLabel(mode)),
-                    trailing: themeMode == mode
-                        ? Icon(
-                            Icons.check,
-                            color: theme.colorScheme.primary,
-                            size: 20,
-                          )
-                        : null,
-                    onTap: () => ref.read(themeModeProvider.notifier).set(mode),
+            child: Padding(
+              padding: const EdgeInsets.all(AppTokens.spaceMd),
+              child: SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    label: Text('跟随系统'),
                   ),
-              ],
+                  ButtonSegment(value: ThemeMode.light, label: Text('浅色')),
+                  ButtonSegment(value: ThemeMode.dark, label: Text('深色')),
+                ],
+                selected: {themeMode},
+                onSelectionChanged: (value) {
+                  if (value.isNotEmpty) {
+                    ref.read(themeModeProvider.notifier).set(value.first);
+                  }
+                },
+              ),
             ),
           ),
           const SizedBox(height: AppTokens.spaceLg),
@@ -72,9 +74,16 @@ class SettingsPage extends ConsumerWidget {
         padding: const EdgeInsets.all(AppTokens.spaceLg),
         child: Row(
           children: [
-            AppAvatar(
-              name: user?.displayName ?? '?',
-              size: 56,
+            ClipRRect(
+              borderRadius: AppTokens.radiusMdBorder,
+              child: Image.asset(
+                'assets/branding/app_icon.png',
+                width: 56,
+                height: 56,
+                fit: BoxFit.cover,
+                cacheWidth: 112,
+                filterQuality: FilterQuality.medium,
+              ),
             ),
             const SizedBox(width: AppTokens.spaceLg),
             Expanded(
@@ -111,12 +120,6 @@ class SettingsPage extends ConsumerWidget {
           ),
         ),
       );
-
-  String _themeLabel(ThemeMode mode) => switch (mode) {
-        ThemeMode.system => '跟随系统',
-        ThemeMode.light => '浅色',
-        ThemeMode.dark => '深色',
-      };
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showModalBottomSheet<bool>(
