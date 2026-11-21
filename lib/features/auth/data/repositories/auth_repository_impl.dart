@@ -62,10 +62,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> restoreSession(String token) async {
+  Future<User> restoreSession(String token) async {
     apiClient.setToken(token);
     try {
-      await remote.currentUser();
+      return await remote.currentUser();
     } catch (_) {
       await storage.clearToken();
       apiClient.clearToken();

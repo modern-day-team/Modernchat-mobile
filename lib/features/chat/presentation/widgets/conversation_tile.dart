@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../../core/model/models.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/ui/ui.dart';
+import '../../../../core/utils/message_time_formatter.dart';
 
 class ConversationTile extends StatelessWidget {
   const ConversationTile({
@@ -130,26 +131,16 @@ class ConversationTile extends StatelessWidget {
   }
 
   Color _colorOf(BuildContext context) {
-    final value = int.tryParse(
-      conversation.peer?.avatarColor.replaceFirst('#', '') ?? '',
-      radix: 16,
-    );
-    if (value == null) {
-      return Theme.of(context).colorScheme.primary;
-    }
+    final value = conversation.peer?.avatarColorValue;
+    if (value == null) return Theme.of(context).colorScheme.primary;
     return Color(value);
   }
 
   String _timeLabel(String? iso) {
     if (iso == null || iso.isEmpty) return '';
-    final date = DateTime.tryParse(iso)?.toLocal();
-    if (date == null) return '';
-    final now = DateTime.now();
-    if (date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day) {
-      return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    }
-    return '${date.month}/${date.day}';
+    final date = MessageTimeFormatter.date(iso);
+    if (date == '今天') return MessageTimeFormatter.time(iso);
+    if (date.isEmpty) return '';
+    return date.replaceFirst('月', '/').replaceFirst('日', '');
   }
 }

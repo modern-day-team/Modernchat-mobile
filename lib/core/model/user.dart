@@ -1,6 +1,8 @@
 import 'json_helpers.dart';
 
 class UserSummary {
+  static final Map<String, int?> _avatarColorCache = <String, int?>{};
+
   const UserSummary({
     required this.id,
     required this.username,
@@ -26,6 +28,19 @@ class UserSummary {
   }
 
   String get displayName => nickname.isNotEmpty ? nickname : username;
+
+  int? get avatarColorValue {
+    if (_avatarColorCache.containsKey(avatarColor)) {
+      return _avatarColorCache[avatarColor];
+    }
+    if (_avatarColorCache.length >= 256) _avatarColorCache.clear();
+    final value = int.tryParse(
+      avatarColor.startsWith('#') ? avatarColor.substring(1) : avatarColor,
+      radix: 16,
+    );
+    _avatarColorCache[avatarColor] = value;
+    return value;
+  }
 }
 
 class User extends UserSummary {

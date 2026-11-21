@@ -42,8 +42,7 @@ class AuthController extends AsyncNotifier<AuthState> {
 
     final repository = await ref.watch(authRepositoryProvider.future);
     try {
-      await repository.restoreSession(token);
-      final user = await repository.currentUser();
+      final user = await repository.restoreSession(token);
       return AuthState.authenticated(user, token);
     } catch (_) {
       return AuthState.guest;

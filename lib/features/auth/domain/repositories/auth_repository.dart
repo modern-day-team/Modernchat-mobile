@@ -20,5 +20,5 @@ abstract interface class AuthRepository {
 
   Future<void> logout();
 
-  Future<void> restoreSession(String token);
+  Future<User> restoreSession(String token);
 }
