@@ -46,27 +46,65 @@ class ConversationListController extends AsyncNotifier<List<Conversation>> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref.read(chatRepositoryProvider).listConversations(),
-    );
+    await _load(() => ref.read(chatRepositoryProvider).listConversations());
   }
 
   Future<void> search(String keyword) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    await _load(
       () => ref
           .read(chatRepositoryProvider)
           .searchConversations(keyword.trim()),
     );
   }
 
+  Future<void> _load(Future<List<Conversation>> Function() loader) async {
+    final previous = state.value;
+    final result = await AsyncValue.guard(loader);
+    final next = result.value;
+    if (next != null) {
+      state = AsyncData(next);
+      return;
+    }
+    if (previous == null) state = result;
+  }
+
   void _onWsEvent(WsEvent event) {
+    if (event.type == 'message' && _applyMessageEvent(event)) return;
     if (event.type != 'conv_change' &&
         event.type != 'message' &&
         event.type != 'user_change') {
       return;
     }
+    _scheduleRefresh();
+  }
+
+  bool _applyMessageEvent(WsEvent event) {
+    final raw = event.payload['message'];
+    if (raw is! Map) return false;
+    final current = state.value;
+    if (current == null) return false;
+
+    final message = Message.fromJson(Map<String, dynamic>.from(raw));
+    final index = current.indexWhere((item) => item.id == message.conversationId);
+    if (index < 0) return false;
+
+    final updated = List<Conversation>.of(current);
+    final conversation = current[index];
+    final myId = ref.read(authUserIdProvider);
+    updated[index] = conversation.copyWith(
+      lastMessageId: message.id,
+      lastMessageAt: message.createdAt,
+      lastMessagePreview: message.content,
+      lastMessageType: message.msgType,
+      unreadCount: message.senderId == myId
+          ? conversation.unreadCount
+          : conversation.unreadCount + 1,
+    );
+    state = AsyncData(updated);
+    return true;
+  }
+
+  void _scheduleRefresh() {
     _refreshDebounce?.cancel();
     _refreshDebounce = Timer(const Duration(milliseconds: 260), () {
       if (ref.mounted) refresh();
@@ -83,6 +121,7 @@ class MessageListController extends AsyncNotifier<List<Message>> {
   final int _conversationId;
   bool _hasMore = true;
   int? _oldestId;
+  final Set<int> _messageIds = <int>{};
   final Map<String, ClientMessage> _pending = {};
 
   bool get hasMore => _hasMore;
@@ -101,6 +140,9 @@ class MessageListController extends AsyncNotifier<List<Message>> {
         );
     _hasMore = page.hasMore;
     final messages = List<Message>.of(page.messages);
+    _messageIds
+      ..clear()
+      ..addAll(messages.map((message) => message.id));
     if (messages.isNotEmpty) _oldestId = messages.first.id;
     return messages..sort((a, b) => a.id.compareTo(b.id));
   }
@@ -119,6 +161,7 @@ class MessageListController extends AsyncNotifier<List<Message>> {
     _hasMore = page.hasMore;
     final loaded = List<Message>.of(page.messages);
     if (loaded.isNotEmpty) _oldestId = loaded.first.id;
+    _messageIds.addAll(loaded.map((message) => message.id));
     final merged = <Message>[...loaded, ...state.value ?? const <Message>[]];
     final ids = <int>{};
     state = AsyncData(
@@ -143,13 +186,21 @@ class MessageListController extends AsyncNotifier<List<Message>> {
         final clientMsgId = message.clientMsgId;
         final pending = clientMsgId.isEmpty ? null : _pending.remove(clientMsgId);
         if (pending != null) {
+          final optimistic = current
+              .where((item) => item.clientMsgId == clientMsgId)
+              .toList();
+          for (final item in optimistic) {
+            _messageIds.remove(item.id);
+          }
+          _messageIds.add(message.id);
           final replaced = current
               .map((m) => m.clientMsgId == clientMsgId ? message : m)
               .toList();
           state = AsyncData(replaced);
           return;
         }
-        if (current.any((m) => m.id == message.id)) return;
+        if (_messageIds.contains(message.id)) return;
+        _messageIds.add(message.id);
         state = AsyncData([...current, message]);
       case 'recall':
         final id = (event.payload['messageId'] as num?)?.toInt() ?? 0;
@@ -225,6 +276,7 @@ class MessageListController extends AsyncNotifier<List<Message>> {
       senderId: myId ?? 0,
       createdAt: optimistic.createdAt,
     );
+    _messageIds.add(optimistic.id);
     state = AsyncData([...current, optimistic]);
     ref.read(wsClientProvider).sendChat(
           convId: _conversationId,

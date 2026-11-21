@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/utils/message_time_formatter.dart';
 
 class MessageDateSeparator extends StatelessWidget {
   const MessageDateSeparator({super.key, required this.iso});
@@ -39,16 +40,5 @@ class MessageDateSeparator extends StatelessWidget {
     );
   }
 
-  String _label(String value) {
-    final time = DateTime.tryParse(value)?.toLocal();
-    if (time == null) return '';
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final date = DateTime(time.year, time.month, time.day);
-    final days = today.difference(date).inDays;
-    if (days == 0) return '今天';
-    if (days == 1) return '昨天';
-    if (date.year == now.year) return '${date.month}月${date.day}日';
-    return '${date.year}年${date.month}月${date.day}日';
-  }
+  String _label(String value) => MessageTimeFormatter.date(value);
 }

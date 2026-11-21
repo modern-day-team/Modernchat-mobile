@@ -54,6 +54,52 @@ class Conversation {
 
   String get displayName => name.isNotEmpty ? name : (peer?.displayName ?? '会话');
 
+  Conversation copyWith({
+    String? name,
+    String? avatar,
+    UserSummary? peer,
+    int? ownerId,
+    int? memberCount,
+    int? lastMessageId,
+    String? lastMessageAt,
+    String? lastMessagePreview,
+    String? lastMessageType,
+    int? lastReadMessageId,
+    int? unreadCount,
+    bool? pinned,
+    bool? muted,
+    bool? archived,
+    bool? muteAll,
+    int? mentionUnread,
+    String? announcement,
+    String? announcementAt,
+    int? announcementBy,
+  }) {
+    return Conversation(
+      id: id,
+      type: type,
+      name: name ?? this.name,
+      avatar: avatar ?? this.avatar,
+      peer: peer ?? this.peer,
+      ownerId: ownerId ?? this.ownerId,
+      memberCount: memberCount ?? this.memberCount,
+      lastMessageId: lastMessageId ?? this.lastMessageId,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      lastMessageType: lastMessageType ?? this.lastMessageType,
+      lastReadMessageId: lastReadMessageId ?? this.lastReadMessageId,
+      unreadCount: unreadCount ?? this.unreadCount,
+      pinned: pinned ?? this.pinned,
+      muted: muted ?? this.muted,
+      archived: archived ?? this.archived,
+      muteAll: muteAll ?? this.muteAll,
+      mentionUnread: mentionUnread ?? this.mentionUnread,
+      announcement: announcement ?? this.announcement,
+      announcementAt: announcementAt ?? this.announcementAt,
+      announcementBy: announcementBy ?? this.announcementBy,
+    );
+  }
+
   factory Conversation.fromJson(Map<String, dynamic> json) {
     final peer = json['peer'];
     return Conversation(

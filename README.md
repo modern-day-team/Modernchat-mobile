@@ -23,7 +23,8 @@ flutter run
 ```powershell
 flutter analyze                         # 静态检查
 flutter test                            # 运行测试
-flutter build apk --release             # Android 安装包
+flutter build apk --release             # Android 通用安装包
+flutter build apk --release --split-per-abi  # Android 按 ABI 拆分安装包
 flutter build ios --release             # iOS（需在 macOS 上执行）
 ```
 
@@ -81,6 +82,7 @@ lib/
 - 本地搜索先过滤已加载的好友，不增加额外请求
 - 输入框状态用 `ValueListenableBuilder` 局部更新，避免每次按键重建整个页面
 - 空态 / 错误态统一由 `core/ui/app_state_view.dart` 提供
+- 完整性能策略、约束和验证方式见 [docs/性能优化.md](docs/性能优化.md)
 
 ## API 对接
 

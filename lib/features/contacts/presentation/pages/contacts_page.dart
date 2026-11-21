@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/model/models.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/ui/ui.dart';
 import '../../../chat/presentation/pages/chat_room_page.dart';
@@ -18,7 +19,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final _searchController = TextEditingController();
-  String _keyword = '';
+  final _query = ValueNotifier<String>('');
 
   @override
   void initState() {
@@ -30,6 +31,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _query.dispose();
     super.dispose();
   }
 
@@ -94,17 +96,21 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceMd,
           ),
-          suffixIcon: _keyword.isEmpty
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _keyword = '');
-                  },
-                ),
+          suffixIcon: ValueListenableBuilder<String>(
+            valueListenable: _query,
+            builder: (context, keyword, _) {
+              if (keyword.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () {
+                  _searchController.clear();
+                  _query.value = '';
+                },
+              );
+            },
+          ),
         ),
-        onChanged: (value) => setState(() => _keyword = value.trim()),
+        onChanged: (value) => _query.value = value.trim(),
       ),
     );
   }
@@ -112,44 +118,49 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
   Widget _friendList() {
     final friends = ref.watch(friendListProvider);
     return friends.when(
-      data: (list) {
-        final filtered = _keyword.isEmpty
-            ? list
-            : list
-                .where((item) =>
-                    item.friend.displayName.contains(_keyword) ||
-                    item.friend.username.contains(_keyword))
-                .toList();
-        if (filtered.isEmpty) {
-          return AppEmptyState(
-            icon: Icons.people_outline,
-            title: '暂无好友',
-            subtitle: _keyword.isEmpty ? '点击右下角 + 添加好友' : '换个关键词试试',
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () => ref.read(friendListProvider.notifier).refresh(),
-          child: ListView.builder(
-            itemCount: filtered.length,
-            itemBuilder: (context, index) {
-              final friend = filtered[index].friend;
-              return RepaintBoundary(
-                child: ListTile(
-                  leading: AppAvatar(name: friend.displayName),
-                  title: Text(friend.displayName),
-                  subtitle: Text('@${friend.username}'),
-                  trailing: const Icon(Icons.chat_bubble_outline, size: 20),
-                  onTap: () => _showStartChat(context, friend.id),
-                ),
-              );
-            },
-          ),
-        );
-      },
+      data: (list) => ValueListenableBuilder<String>(
+        valueListenable: _query,
+        builder: (context, keyword, _) => _buildFriendList(list, keyword),
+      ),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => AppErrorState(
         error: error,
         onRetry: () => ref.read(friendListProvider.notifier).refresh(),
+      ),
+    );
+  }
+
+  Widget _buildFriendList(List<FriendItem> list, String keyword) {
+    final filtered = keyword.isEmpty
+        ? list
+        : list
+            .where((item) =>
+                item.friend.displayName.contains(keyword) ||
+                item.friend.username.contains(keyword))
+            .toList();
+    if (filtered.isEmpty) {
+      return AppEmptyState(
+        icon: Icons.people_outline,
+        title: '暂无好友',
+        subtitle: keyword.isEmpty ? '点击右下角 + 添加好友' : '换个关键词试试',
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: () => ref.read(friendListProvider.notifier).refresh(),
+      child: ListView.builder(
+        itemCount: filtered.length,
+        itemBuilder: (context, index) {
+          final friend = filtered[index].friend;
+          return RepaintBoundary(
+            child: ListTile(
+              leading: AppAvatar(name: friend.displayName),
+              title: Text(friend.displayName),
+              subtitle: Text('@${friend.username}'),
+              trailing: const Icon(Icons.chat_bubble_outline, size: 20),
+              onTap: () => _showStartChat(context, friend.id),
+            ),
+          );
+        },
       ),
     );
   }

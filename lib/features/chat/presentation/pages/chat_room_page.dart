@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/model/models.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/ui/ui.dart';
+import '../../../../core/utils/message_time_formatter.dart';
 import '../providers/chat_providers.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/message_date_separator.dart';
@@ -98,14 +99,7 @@ class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
     );
   }
 
-  bool _sameDay(String a, String b) {
-    final first = DateTime.tryParse(a)?.toLocal();
-    final second = DateTime.tryParse(b)?.toLocal();
-    if (first == null || second == null) return false;
-    return first.year == second.year &&
-        first.month == second.month &&
-        first.day == second.day;
-  }
+  bool _sameDay(String a, String b) => MessageTimeFormatter.sameDay(a, b);
 
   Widget _composer(ThemeData theme) {
     return SafeArea(

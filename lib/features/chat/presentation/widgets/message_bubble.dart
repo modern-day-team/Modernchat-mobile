@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/model/models.dart';
 import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/utils/message_time_formatter.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -122,9 +123,5 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  String _timeLabel(String iso) {
-    final date = DateTime.tryParse(iso)?.toLocal();
-    if (date == null) return '';
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
+  String _timeLabel(String iso) => MessageTimeFormatter.time(iso);
 }
