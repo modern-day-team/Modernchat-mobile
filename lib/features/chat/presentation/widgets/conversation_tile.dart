@@ -105,7 +105,9 @@ class ConversationTile extends StatelessWidget {
                       height: 20,
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
-                        color: AppTokens.danger,
+                        color: conversation.muted
+                            ? theme.colorScheme.surfaceContainerHighest
+                            : theme.colorScheme.primary,
                         borderRadius: AppTokens.pillBorder,
                       ),
                       alignment: Alignment.center,
@@ -113,9 +115,11 @@ class ConversationTile extends StatelessWidget {
                         conversation.unreadCount > 99
                             ? '99+'
                             : '${conversation.unreadCount}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: AppTokens.caption,
-                          color: Colors.white,
+                          color: conversation.muted
+                              ? theme.colorScheme.onSurfaceVariant
+                              : theme.colorScheme.onPrimary,
                         ),
                       ),
                     )

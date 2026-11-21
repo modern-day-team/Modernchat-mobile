@@ -45,18 +45,18 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('消息'),
-        actions: [
-          IconButton(
-            tooltip: '新建会话',
-            icon: const Icon(Icons.add_comment_outlined),
-            onPressed: _showNewConversationSheet,
-          ),
-        ],
-      ),
       body: Column(
         children: [
+          AppLargeHeader(
+            title: '消息',
+            actions: [
+              IconButton(
+                tooltip: '新建会话',
+                icon: const Icon(Icons.add_comment_outlined),
+                onPressed: _showNewConversationSheet,
+              ),
+            ],
+          ),
           _searchBar(theme),
           Expanded(
             child: conversations.when(
@@ -78,54 +78,57 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
     if (list.isEmpty) {
       return AppEmptyState(
         icon: Icons.chat_bubble_outline,
-        title: _searching ? '没有匹配的会话' : '还没有会话',
-        subtitle: _searching ? '换个关键词试试' : '点击右上角 + 发起新会话',
+        title: _searching ? '没有找到相关会话' : '还没有会话',
+        subtitle: _searching ? '换个关键词试试，或发起一个新的会话' : '点击右上角 + 发起新会话',
       );
     }
 
     final pinned = list.where((item) => item.pinned).toList();
     final recent = list.where((item) => !item.pinned).toList();
-    final entries = <Object>[
-      if (pinned.isNotEmpty) '置顶',
-      ...pinned,
-      if (recent.isNotEmpty) '最近',
-      ...recent,
-    ];
 
     return RefreshIndicator(
       onRefresh: () => ref.read(conversationListProvider.notifier).refresh(),
-      child: ListView.builder(
+      child: CustomScrollView(
         controller: _scrollController,
-        itemCount: entries.length,
-        itemBuilder: (context, index) {
-          final entry = entries[index];
-          if (entry is String) return _sectionHeader(theme, entry);
-          final conversation = entry as Conversation;
-          return ConversationTile(
-            key: ValueKey(conversation.id),
-            conversation: conversation,
-            onTap: () => _openRoom(conversation),
-            onLongPress: () => _showActions(conversation),
-          );
-        },
+        slivers: [
+          if (pinned.isNotEmpty) ...[
+            _sectionHeader(theme, '置顶'),
+            SliverList.builder(
+              itemCount: pinned.length,
+              itemBuilder: (context, index) {
+                final conversation = pinned[index];
+                return ConversationTile(
+                  key: ValueKey(conversation.id),
+                  conversation: conversation,
+                  onTap: () => _openRoom(conversation),
+                  onLongPress: () => _showActions(conversation),
+                );
+              },
+            ),
+          ],
+          if (recent.isNotEmpty) ...[
+            _sectionHeader(theme, '最近'),
+            SliverList.builder(
+              itemCount: recent.length,
+              itemBuilder: (context, index) {
+                final conversation = recent[index];
+                return ConversationTile(
+                  key: ValueKey(conversation.id),
+                  conversation: conversation,
+                  onTap: () => _openRoom(conversation),
+                  onLongPress: () => _showActions(conversation),
+                );
+              },
+            ),
+          ],
+        ],
       ),
     );
   }
 
-  Widget _sectionHeader(ThemeData theme, String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppTokens.spaceLg,
-          AppTokens.spaceMd,
-          AppTokens.spaceLg,
-          AppTokens.spaceXs,
-        ),
-        child: Text(
-          text,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+  Widget _sectionHeader(ThemeData theme, String text) => SliverPersistentHeader(
+        pinned: true,
+        delegate: _SectionHeaderDelegate(text, theme),
       );
 
   Widget _searchBar(ThemeData theme) {
@@ -141,7 +144,9 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
         controller: _searchController,
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
-          hintText: '搜索会话',
+          hintText: '搜索会话或联系人',
+          filled: true,
+          fillColor: theme.colorScheme.surface,
           prefixIcon: const Icon(Icons.search, size: 20),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceMd,
@@ -194,7 +199,6 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
       ),
     );
     if (action == null || !mounted) return;
-    final notifier = ref.read(conversationListProvider.notifier);
     final repository = ref.read(chatRepositoryProvider);
     try {
       switch (action) {
@@ -215,7 +219,7 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
         case ConversationAction.close:
           return;
       }
-      await notifier.refresh();
+      await ref.read(conversationListProvider.notifier).refresh();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -308,17 +312,61 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
     );
     if (name == null || name.trim().isEmpty || !mounted) return;
     try {
-      final repository = ref.read(chatRepositoryProvider);
-      final conversation = await repository.createGroup(name.trim());
+      final conversation = await ref
+          .read(chatRepositoryProvider)
+          .createGroup(name.trim());
       await ref.read(conversationListProvider.notifier).refresh();
       if (!mounted) return;
       _openRoom(conversation);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('操作失败：$e')),
+          SnackBar(content: Text('创建失败：$e')),
         );
       }
     }
+  }
+}
+
+class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _SectionHeaderDelegate(this.text, this.theme);
+
+  final String text;
+  final ThemeData theme;
+
+  @override
+  double get minExtent => 36;
+
+  @override
+  double get maxExtent => 36;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: theme.colorScheme.surface,
+      padding: const EdgeInsets.fromLTRB(
+        AppTokens.spaceLg,
+        AppTokens.spaceSm,
+        AppTokens.spaceLg,
+        AppTokens.spaceXs,
+      ),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SectionHeaderDelegate oldDelegate) {
+    return text != oldDelegate.text || theme != oldDelegate.theme;
   }
 }

@@ -5,16 +5,20 @@ abstract final class AppTokens {
   static const brandDark = Color(0xFF7CB8FF);
   static const brandSelect = Color(0x290052D9);
   static const brandSelectDark = Color(0x477CB8FF);
-  static const ink = Color(0xFF0F172A);
-  static const inkDark = Color(0xFFE6EAF2);
-  static const inkSecondary = Color(0xB30F172A);
-  static const inkSecondaryDark = Color(0xB3E6EAF2);
-  static const inkFaint = Color(0xFF6B6B6B);
-  static const inkFaintDark = Color(0xFFA8A8A8);
+  static const ink = Color(0xFF141821);
+  static const inkDark = Color(0xFFE9ECF2);
+  static const inkSecondary = Color(0xB8141821);
+  static const inkSecondaryDark = Color(0x9EE9ECF2);
+  static const inkFaint = Color(0x80141821);
+  static const inkFaintDark = Color(0x6BE9ECF2);
   static const surface = Color(0xFFFFFFFF);
-  static const surfaceDark = Color(0xFF17191F);
-  static const surfaceAlt = Color(0xFFF5F7FA);
-  static const surfaceAltDark = Color(0xFF1F222B);
+  static const surfaceDark = Color(0xFF1F2229);
+  static const surfaceAlt = Color(0xFFF7F8FA);
+  static const surfaceAltDark = Color(0xFF17191C);
+  static const surfaceLevel2 = Color(0xFFF2F3F5);
+  static const surfaceLevel2Dark = Color(0xFF262A32);
+  static const surfaceLevel3 = Color(0xFFE7E9ED);
+  static const surfaceLevel3Dark = Color(0xFF2F343D);
   static const hairline = Color(0x140F172A);
   static const hairlineDark = Color(0x14FFFFFF);
   static const danger = Color(0xFFD64949);
@@ -61,6 +65,10 @@ abstract final class AppTokens {
       brightness == Brightness.dark ? surfaceDark : surface;
   static Color surfaceAltOf(Brightness brightness) =>
       brightness == Brightness.dark ? surfaceAltDark : surfaceAlt;
+  static Color surfaceLevel2Of(Brightness brightness) =>
+      brightness == Brightness.dark ? surfaceLevel2Dark : surfaceLevel2;
+  static Color surfaceLevel3Of(Brightness brightness) =>
+      brightness == Brightness.dark ? surfaceLevel3Dark : surfaceLevel3;
   static Color inkOf(Brightness brightness) =>
       brightness == Brightness.dark ? inkDark : ink;
   static Color inkSecondaryOf(Brightness brightness) =>

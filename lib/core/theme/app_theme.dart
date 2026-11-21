@@ -23,7 +23,8 @@ abstract final class AppTheme {
       onPrimaryContainer: brand,
       surface: surface,
       onSurface: ink,
-      surfaceContainerHighest: surfaceAlt,
+      surfaceContainerHighest: AppTokens.surfaceLevel2Of(brightness),
+      surfaceContainerLow: surfaceAlt,
       onSurfaceVariant: inkSecondary,
       error: AppTokens.danger,
       outline: hairline,
@@ -32,7 +33,7 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: surface,
+      scaffoldBackgroundColor: AppTokens.surfaceAltOf(brightness),
       dividerColor: hairline,
       textTheme: _textTheme(ink),
       appBarTheme: AppBarTheme(

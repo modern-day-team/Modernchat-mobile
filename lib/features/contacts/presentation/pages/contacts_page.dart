@@ -37,34 +37,45 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
 
   @override
   Widget build(BuildContext context) {
+    final friendCount = ref.watch(
+      friendListProvider.select((value) => value.value?.length ?? 0),
+    );
     final pendingRequests = ref.watch(
       friendRequestProvider.select((value) => value.value?.length ?? 0),
     );
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('联系人'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            const Tab(text: '好友'),
-            Tab(
-              child: Badge(
-                label: Text('$pendingRequests'),
-                isLabelVisible: pendingRequests > 0,
-                child: const Text('申请'),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddFriend,
-        child: const Icon(Icons.person_add_alt_1),
-      ),
       body: Column(
         children: [
-          _searchBar(),
+          AppLargeHeader(
+            title: '联系人',
+            actions: [
+              IconButton(
+                tooltip: '添加好友',
+                icon: const Icon(Icons.person_add_alt_1_outlined),
+                onPressed: _showAddFriend,
+              ),
+            ],
+          ),
+          TabBar(
+            controller: _tabController,
+            labelColor: theme.colorScheme.onSurface,
+            unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+            indicatorColor: theme.colorScheme.primary,
+            tabs: [
+              Tab(text: '好友  $friendCount'),
+              Tab(
+                child: Badge(
+                  label: Text('$pendingRequests'),
+                  isLabelVisible: pendingRequests > 0,
+                  backgroundColor: theme.colorScheme.error,
+                  child: const Text('申请'),
+                ),
+              ),
+            ],
+          ),
+          _searchBar(theme),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -76,10 +87,14 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddFriend,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
-  Widget _searchBar() {
+  Widget _searchBar(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppTokens.spaceLg,
@@ -87,11 +102,13 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
         AppTokens.spaceLg,
         AppTokens.spaceSm,
       ),
-      color: Theme.of(context).colorScheme.surface,
+      color: theme.colorScheme.surface,
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           hintText: '搜索好友',
+          filled: true,
+          fillColor: theme.colorScheme.surface,
           prefixIcon: const Icon(Icons.search, size: 20),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppTokens.spaceMd,
@@ -148,15 +165,31 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
     return RefreshIndicator(
       onRefresh: () => ref.read(friendListProvider.notifier).refresh(),
       child: ListView.builder(
-        itemCount: filtered.length,
+        itemCount: filtered.length + 1,
         itemBuilder: (context, index) {
-          final friend = filtered[index].friend;
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTokens.spaceLg,
+                AppTokens.spaceMd,
+                AppTokens.spaceLg,
+                AppTokens.spaceXs,
+              ),
+              child: Text(
+                '全部好友 · ${filtered.length}',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            );
+          }
+          final friend = filtered[index - 1].friend;
           return RepaintBoundary(
             child: ListTile(
               leading: AppAvatar(name: friend.displayName),
               title: Text(friend.displayName),
               subtitle: Text('@${friend.username}'),
-              trailing: const Icon(Icons.chat_bubble_outline, size: 20),
+              trailing: const Icon(Icons.chevron_right, size: 20),
               onTap: () => _showStartChat(context, friend.id),
             ),
           );
@@ -172,16 +205,32 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
         if (list.isEmpty) {
           return AppEmptyState(
             icon: Icons.person_add_outlined,
-            title: '暂无好友申请',
-            subtitle: '有新的申请会显示在这里',
+            title: '暂无新的好友申请',
+            subtitle: '收到的好友申请会出现在这里',
           );
         }
         return RefreshIndicator(
           onRefresh: () => ref.read(friendRequestProvider.notifier).refresh(),
           child: ListView.builder(
-            itemCount: list.length,
+            itemCount: list.length + 1,
             itemBuilder: (context, index) {
-              final request = list[index];
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTokens.spaceLg,
+                    AppTokens.spaceMd,
+                    AppTokens.spaceLg,
+                    AppTokens.spaceXs,
+                  ),
+                  child: Text(
+                    '待处理 · ${list.length}',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                );
+              }
+              final request = list[index - 1];
               return RepaintBoundary(
                 child: ListTile(
                   leading: AppAvatar(name: request.friend.displayName),
@@ -255,13 +304,14 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
                     autofocus: true,
                     textCapitalization: TextCapitalization.none,
                     decoration: const InputDecoration(
-                      labelText: '对方用户名',
-                      hintText: '例如：alice',
+                      labelText: '好友 ID 或用户名',
+                      hintText: '通过 ID 搜索并发送好友申请',
                     ),
                   ),
                   const SizedBox(height: AppTokens.spaceLg),
                   FilledButton(
-                    onPressed: () => Navigator.pop(context, controller.text.trim()),
+                    onPressed: () =>
+                        Navigator.pop(context, controller.text.trim()),
                     child: const Text('发送申请'),
                   ),
                 ],
