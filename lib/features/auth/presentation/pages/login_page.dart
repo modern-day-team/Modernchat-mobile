@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_tokens.dart';
 import '../providers/auth_provider.dart';
 import 'register_page.dart';
 
@@ -47,69 +48,100 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final error = _error ?? auth.error?.toString();
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppTokens.spaceXxl),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Icon(Icons.chat_bubble_outline, size: 64, color: Colors.indigo),
-                  const SizedBox(height: 16),
-                  Text(
-                    'ModernChat 登录页',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 32),
-                  TextField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: '用户名',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    textInputAction: TextInputAction.next,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: '密码',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    obscureText: true,
-                    onSubmitted: (_) => _submit(),
-                  ),
-                  if (error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(error, style: const TextStyle(color: Colors.red)),
-                  ],
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _submitting ? null : _submit,
-                    child: _submitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('登录'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const RegisterPage(),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppTokens.spaceXxl),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: AppTokens.radiusLgBorder,
+                        ),
+                        child: Icon(
+                          Icons.chat_bubble_outline,
+                          color: theme.colorScheme.primary,
+                          size: 28,
+                        ),
                       ),
-                    ),
-                    child: const Text('没有账号？注册'),
+                      const SizedBox(height: AppTokens.spaceLg),
+                      Text(
+                        '登录 ModernChat',
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: AppTokens.spaceXs),
+                      Text(
+                        '连接团队，随时沟通',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: AppTokens.spaceXxl),
+                      TextField(
+                        controller: _usernameController,
+                        autofillHints: const [AutofillHints.username],
+                        decoration: const InputDecoration(
+                          labelText: '用户名',
+                          prefixIcon: Icon(Icons.person_outline, size: 20),
+                        ),
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: AppTokens.spaceLg),
+                      TextField(
+                        controller: _passwordController,
+                        autofillHints: const [AutofillHints.password],
+                        decoration: const InputDecoration(
+                          labelText: '密码',
+                          prefixIcon: Icon(Icons.lock_outline, size: 20),
+                        ),
+                        obscureText: true,
+                        onSubmitted: (_) => _submit(),
+                      ),
+                      if (error != null) ...[
+                        const SizedBox(height: AppTokens.spaceMd),
+                        Text(
+                          error,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppTokens.spaceXxl),
+                      FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        child: _submitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('登录'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const RegisterPage(),
+                          ),
+                        ),
+                        child: const Text('没有账号？注册'),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

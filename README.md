@@ -55,6 +55,29 @@ lib/
 - 模块间不直接 import 内部文件，通过路由或 Provider 通信
 - 技术选型：Riverpod（状态管理 + 依赖注入）、go_router（路由）、dio（网络）、shared_preferences（本地存储）
 
+## UI 与移动端交互
+
+视觉风格模仿 Web 端 `docs/UI设计方案.md`，统一在 `lib/core/theme/app_tokens.dart`：
+
+- 品牌蓝 `#0052D9`（深色 `#7CB8FF`），品牌色只用于主按钮、选中态、未读等关键位置
+- 7 档字号（11/12/13/14/16/20/26）、4 档圆角 + 胶囊（6/10/14/20/999）、4pt 间距节奏
+- 120/200/280ms 动效时长与 `ease-out / ease-in-out / spring` 缓动令牌
+- 设置页可切换浅色 / 深色 / 跟随系统
+
+移动端交互约定：
+
+- 一级入口固定在底部导航：消息 / 联系人 / 设置；高频动作常驻列表（会话搜索、新建会话、添加好友）
+- 上下文操作用底部面板：长按会话可置顶、免打扰、改群名；退出登录、添加好友等也使用底部面板
+- 触控目标不小于 44px；输入框自动收键盘；长按会话与页码切换保持状态
+
+性能约定：
+
+- 长列表使用 `ListView.builder` + `ValueKey`，会话项、消息气泡、联系人项用 `RepaintBoundary` 隔离重绘
+- 主界面 `IndexedStack` 保留各 tab 状态，避免切页重复请求
+- 认证只订阅 `authUserIdProvider`，避免整个 `AuthState` 变化导致聊天页重建
+- WS 触发的会话列表刷新做 260ms 节流，避免高频消息导致整表反复请求与重建
+- 本地搜索先过滤已加载的好友，不增加额外请求
+
 ## API 对接
 
 接口契约来自服务端 `docs/API文档.md`：https://github.com/modern-day-team/modern-chat-new/blob/main/docs/API%E6%96%87%E6%A1%A3.md

@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_tokens.dart';
+import '../../../../core/ui/ui.dart';
 import '../../../chat/presentation/pages/chat_room_page.dart';
 import '../../../chat/presentation/providers/chat_providers.dart';
 import '../providers/contacts_providers.dart';
@@ -16,6 +18,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final _searchController = TextEditingController();
+  String _keyword = '';
 
   @override
   void initState() {
@@ -47,106 +50,213 @@ class _ContactsPageState extends ConsumerState<ContactsPage>
         onPressed: _showAddFriend,
         child: const Icon(Icons.person_add_alt_1),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _friendList(ref),
-          _requestList(ref),
+          _searchBar(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _friendList(),
+                _requestList(),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _friendList(WidgetRef ref) {
-    final friends = ref.watch(friendListProvider);
-    return friends.when(
-      data: (list) => RefreshIndicator(
-        onRefresh: () => ref.read(friendListProvider.notifier).refresh(),
-        child: list.isEmpty
-            ? const Center(child: Text('暂无好友'))
-            : ListView.builder(
-                itemCount: list.length,
-                itemBuilder: (context, index) {
-                  final friend = list[index].friend;
-                  return ListTile(
-                    leading: CircleAvatar(child: Text(friend.displayName.substring(0, 1))),
-                    title: Text(friend.displayName),
-                    subtitle: Text('@${friend.username}'),
-                    onTap: () => _showStartChat(context, friend.id),
-                  );
-                },
-              ),
+  Widget _searchBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppTokens.spaceLg,
+        AppTokens.spaceSm,
+        AppTokens.spaceLg,
+        AppTokens.spaceSm,
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('加载失败：$error')),
+      color: Theme.of(context).colorScheme.surface,
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索好友',
+          prefixIcon: const Icon(Icons.search, size: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppTokens.spaceMd,
+          ),
+          suffixIcon: _keyword.isEmpty
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _keyword = '');
+                  },
+                ),
+        ),
+        onChanged: (value) => setState(() => _keyword = value.trim()),
+      ),
     );
   }
 
-  Widget _requestList(WidgetRef ref) {
+  Widget _friendList() {
+    final friends = ref.watch(friendListProvider);
+    return friends.when(
+      data: (list) {
+        final filtered = _keyword.isEmpty
+            ? list
+            : list
+                .where((item) =>
+                    item.friend.displayName.contains(_keyword) ||
+                    item.friend.username.contains(_keyword))
+                .toList();
+        if (filtered.isEmpty) {
+          return _empty('暂无好友', '点击右下角 + 添加好友');
+        }
+        return RefreshIndicator(
+          onRefresh: () => ref.read(friendListProvider.notifier).refresh(),
+          child: ListView.builder(
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final friend = filtered[index].friend;
+              return RepaintBoundary(
+                child: ListTile(
+                  leading: AppAvatar(name: friend.displayName),
+                  title: Text(friend.displayName),
+                  subtitle: Text('@${friend.username}'),
+                  trailing: const Icon(Icons.chat_bubble_outline, size: 20),
+                  onTap: () => _showStartChat(context, friend.id),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _error(error),
+    );
+  }
+
+  Widget _requestList() {
     final requests = ref.watch(friendRequestProvider);
     return requests.when(
-      data: (list) => RefreshIndicator(
-        onRefresh: () => ref.read(friendRequestProvider.notifier).refresh(),
-        child: list.isEmpty
-            ? const Center(child: Text('暂无好友申请'))
-            : ListView.builder(
-                itemCount: list.length,
-                itemBuilder: (context, index) {
-                  final request = list[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Text(request.friend.displayName.substring(0, 1)),
-                    ),
-                    title: Text(request.friend.displayName),
-                    subtitle: Text('@${request.friend.username}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.check),
+      data: (list) {
+        if (list.isEmpty) return _empty('暂无好友申请', '有新的申请会显示在这里');
+        return RefreshIndicator(
+          onRefresh: () => ref.read(friendRequestProvider.notifier).refresh(),
+          child: ListView.builder(
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              final request = list[index];
+              return RepaintBoundary(
+                child: ListTile(
+                  leading: AppAvatar(name: request.friend.displayName),
+                  title: Text(request.friend.displayName),
+                  subtitle: Text('@${request.friend.username}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton(
+                          tooltip: '接受',
+                          icon: const Icon(Icons.check, color: AppTokens.success),
                           onPressed: () => ref
                               .read(friendRequestProvider.notifier)
                               .handle(request.id, true),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
+                      ),
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton(
+                          tooltip: '拒绝',
+                          icon: const Icon(Icons.close, color: AppTokens.danger),
                           onPressed: () => ref
                               .read(friendRequestProvider.notifier)
                               .handle(request.id, false),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-      ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('加载失败：$error')),
+      error: (error, _) => _error(error),
     );
   }
 
+  Widget _empty(String title, String subtitle) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 96),
+          const Icon(Icons.people_outline, size: 48, color: AppTokens.inkFaint),
+          const SizedBox(height: AppTokens.spaceLg),
+          Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: AppTokens.emphasis)),
+          const SizedBox(height: AppTokens.spaceSm),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: AppTokens.sm,
+              color: AppTokens.inkFaint,
+            ),
+          ),
+        ],
+      );
+
+  Widget _error(Object error) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.spaceXxl),
+          child: Text('加载失败：$error'),
+        ),
+      );
+
   Future<void> _showAddFriend() async {
-    final username = await showDialog<String>(
+    final username = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
         final controller = TextEditingController();
-        return AlertDialog(
-          title: const Text('添加好友'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: '对方用户名'),
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AppTokens.spaceLg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '添加好友',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: AppTokens.spaceLg),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.none,
+                    decoration: const InputDecoration(
+                      labelText: '对方用户名',
+                      hintText: '例如：alice',
+                    ),
+                  ),
+                  const SizedBox(height: AppTokens.spaceLg),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, controller.text.trim()),
+                    child: const Text('发送申请'),
+                  ),
+                ],
+              ),
             ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('发送申请'),
-            ),
-          ],
+          ),
         );
       },
     );

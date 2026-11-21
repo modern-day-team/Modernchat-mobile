@@ -33,10 +33,15 @@ final conversationListProvider =
 );
 
 class ConversationListController extends AsyncNotifier<List<Conversation>> {
+  Timer? _refreshDebounce;
+
   @override
   Future<List<Conversation>> build() async {
     final subscription = ref.watch(wsClientProvider).events.listen(_onWsEvent);
-    ref.onDispose(subscription.cancel);
+    ref.onDispose(() {
+      subscription.cancel();
+      _refreshDebounce?.cancel();
+    });
     return ref.read(chatRepositoryProvider).listConversations();
   }
 
@@ -57,11 +62,15 @@ class ConversationListController extends AsyncNotifier<List<Conversation>> {
   }
 
   void _onWsEvent(WsEvent event) {
-    if (event.type == 'conv_change' ||
-        event.type == 'message' ||
-        event.type == 'user_change') {
-      refresh();
+    if (event.type != 'conv_change' &&
+        event.type != 'message' &&
+        event.type != 'user_change') {
+      return;
     }
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 260), () {
+      if (ref.mounted) refresh();
+    });
   }
 }
 

@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/model/models.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/theme/app_tokens.dart';
 import '../providers/chat_providers.dart';
 import '../widgets/message_bubble.dart';
 
@@ -17,71 +17,132 @@ class ChatRoomPage extends ConsumerStatefulWidget {
 
 class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
+  bool _canSend = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      final canSend = _controller.text.trim().isNotEmpty;
+      if (canSend != _canSend) setState(() => _canSend = canSend);
+    });
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final messages = ref.watch(messageListProvider(widget.conversation.id));
-    final auth = ref.watch(authControllerProvider);
-    final myId = auth.value?.userId;
+    final myId = ref.watch(authUserIdProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.conversation.displayName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => _showSearch(context),
-          ),
-        ],
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.conversation.displayName),
+            if (widget.conversation.isGroup)
+              Text(
+                '${widget.conversation.memberCount} 位成员',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
       ),
       body: Column(
         children: [
           Expanded(
-            child: messages.when(
-              data: (list) => ListView.builder(
-                reverse: true,
-                itemCount: list.length,
-                itemBuilder: (context, index) {
-                  final message = list[list.length - 1 - index];
-                  return MessageBubble(
-                    message: message,
-                    isMine: message.senderId == myId,
-                  );
-                },
+            child: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: messages.when(
+                data: (list) => ListView.builder(
+                  controller: _scrollController,
+                  reverse: true,
+                  itemCount: list.length,
+                  itemBuilder: (context, index) {
+                    final message = list[list.length - 1 - index];
+                    return MessageBubble(
+                      key: ValueKey(message.id),
+                      message: message,
+                      isMine: message.senderId == myId,
+                    );
+                  },
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text('加载失败：$error')),
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(child: Text('加载失败：$error')),
             ),
           ),
-          SafeArea(
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: '输入消息',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _send(),
+          _composer(theme),
+        ],
+      ),
+    );
+  }
+
+  Widget _composer(ThemeData theme) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border(
+            top: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(
+          AppTokens.spaceLg,
+          AppTokens.spaceSm,
+          AppTokens.spaceMd,
+          AppTokens.spaceSm,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.send,
+                decoration: InputDecoration(
+                  hintText: '输入消息',
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.spaceMd,
+                    vertical: AppTokens.spaceSm,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: AppTokens.radiusLgBorder,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _send,
-                ),
-              ],
+                onSubmitted: (_) => _send(),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: AppTokens.spaceSm),
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: FilledButton(
+                onPressed: _canSend ? _send : null,
+                style: FilledButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppTokens.pillBorder,
+                  ),
+                ),
+                child: const Icon(Icons.arrow_upward, size: 20),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -89,38 +150,9 @@ class _ChatRoomPageState extends ConsumerState<ChatRoomPage> {
   void _send() {
     final content = _controller.text.trim();
     if (content.isEmpty) return;
-    ref.read(messageListProvider(widget.conversation.id).notifier).sendText(content);
+    ref
+        .read(messageListProvider(widget.conversation.id).notifier)
+        .sendText(content);
     _controller.clear();
-  }
-
-  Future<void> _showSearch(BuildContext context) async {
-    final query = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        final controller = TextEditingController();
-        return AlertDialog(
-          title: const Text('搜索消息'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: '关键词'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('搜索'),
-            ),
-          ],
-        );
-      },
-    );
-    if (query == null || query.trim().isEmpty || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('消息搜索 "$query" 暂未在当前视图实现')),
-    );
   }
 }

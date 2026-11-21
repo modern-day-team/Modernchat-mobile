@@ -7,6 +7,6 @@ void main() {
   testWidgets('应用启动显示登录页', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: ModernChatApp()));
 
-    expect(find.text('ModernChat 登录页'), findsOneWidget);
+    expect(find.text('登录 ModernChat'), findsOneWidget);
   });
 }

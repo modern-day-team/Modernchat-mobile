@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_tokens.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -52,61 +53,64 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
     final error = _error ?? auth.error?.toString();
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('注册')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: _username,
-              decoration: const InputDecoration(
-                labelText: '用户名',
-                border: OutlineInputBorder(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppTokens.spaceXl),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('创建账号', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: AppTokens.spaceXl),
+              TextField(
+                controller: _username,
+                autofillHints: const [AutofillHints.username],
+                decoration: const InputDecoration(labelText: '用户名'),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _nickname,
-              decoration: const InputDecoration(
-                labelText: '昵称',
-                border: OutlineInputBorder(),
+              const SizedBox(height: AppTokens.spaceLg),
+              TextField(
+                controller: _nickname,
+                autofillHints: const [AutofillHints.nickname],
+                decoration: const InputDecoration(labelText: '昵称'),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _password,
-              decoration: const InputDecoration(
-                labelText: '密码',
-                border: OutlineInputBorder(),
+              const SizedBox(height: AppTokens.spaceLg),
+              TextField(
+                controller: _password,
+                autofillHints: const [AutofillHints.newPassword],
+                decoration: const InputDecoration(labelText: '密码'),
+                obscureText: true,
               ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _inviteCode,
-              decoration: const InputDecoration(
-                labelText: '邀请码（如需）',
-                border: OutlineInputBorder(),
+              const SizedBox(height: AppTokens.spaceLg),
+              TextField(
+                controller: _inviteCode,
+                decoration: const InputDecoration(labelText: '邀请码（如需）'),
               ),
-            ),
-            if (error != null) ...[
-              const SizedBox(height: 12),
-              Text(error, style: const TextStyle(color: Colors.red)),
+              if (error != null) ...[
+                const SizedBox(height: AppTokens.spaceMd),
+                Text(
+                  error,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppTokens.spaceXxl),
+              FilledButton(
+                onPressed: _submitting ? null : _submit,
+                child: _submitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('注册'),
+              ),
             ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('注册'),
-            ),
-          ],
+          ),
         ),
       ),
     );
