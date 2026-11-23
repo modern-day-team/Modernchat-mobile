@@ -36,6 +36,11 @@ class AuthRemoteDataSource {
     await _apiClient.post('/auth/logout');
   }
 
+  /// 手机端确认桌面扫码登录（需当前设备 JWT）。
+  Future<void> confirmQrLogin(String ticket) async {
+    await _apiClient.post('/auth/qr/confirm', data: {'token': ticket});
+  }
+
   AuthResult _parseAuthResult(Map<String, dynamic> body) {
     final userJson = body['user'];
     if (userJson is! Map) {

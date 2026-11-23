@@ -62,6 +62,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> confirmQrLogin(String ticket) => remote.confirmQrLogin(ticket);
+
+  @override
   Future<User> restoreSession(String token) async {
     apiClient.setToken(token);
     try {

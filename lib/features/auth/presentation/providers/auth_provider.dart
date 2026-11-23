@@ -101,6 +101,12 @@ class AuthController extends AsyncNotifier<AuthState> {
     state = const AsyncData(AuthState.guest);
   }
 
+  /// 确认桌面扫码登录（不改变当前设备登录态）。
+  Future<void> confirmQrLogin(String ticket) async {
+    final repository = await ref.read(authRepositoryProvider.future);
+    await repository.confirmQrLogin(ticket);
+  }
+
   /// 与 logout 的区别：不请求服务端（令牌已被撤销），只清本地状态。
   Future<void> _forceGuest() async {
     final prefs = await ref.read(sharedPreferencesProvider.future);

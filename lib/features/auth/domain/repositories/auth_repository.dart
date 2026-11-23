@@ -20,5 +20,8 @@ abstract interface class AuthRepository {
 
   Future<void> logout();
 
+  /// 确认桌面端扫码登录票据（需当前设备已登录）。
+  Future<void> confirmQrLogin(String ticket);
+
   Future<User> restoreSession(String token);
 }

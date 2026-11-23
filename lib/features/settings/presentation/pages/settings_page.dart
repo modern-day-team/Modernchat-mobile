@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/model/models.dart';
 import '../../../../core/network/network.dart';
@@ -55,6 +56,16 @@ class SettingsPage extends ConsumerWidget {
                         onTap: () => _showComingSoon(context, '通知偏好即将上线'),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: AppTokens.spaceLg),
+                _sectionTitle(theme, '账号安全'),
+                Card(
+                  child: _row(
+                    icon: Icons.qr_code_scanner,
+                    label: '扫码确认桌面登录',
+                    value: '',
+                    onTap: () => context.push('/qr-confirm'),
                   ),
                 ),
                 const SizedBox(height: AppTokens.spaceLg),

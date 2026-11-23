@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/qr_confirm_page.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import 'app_shell.dart';
 
@@ -15,6 +16,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/qr-confirm',
+        builder: (context, state) => const QrConfirmPage(),
       ),
       GoRoute(
         path: '/',
