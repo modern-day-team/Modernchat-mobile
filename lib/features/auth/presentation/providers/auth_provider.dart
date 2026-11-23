@@ -1,9 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/network/network.dart';
 import '../../../../core/storage/storage_providers.dart';
-import '../../../../core/storage/storage_service.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
@@ -11,11 +9,10 @@ import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/login_usecase.dart';
 
 final authRepositoryProvider = FutureProvider<AuthRepository>((ref) async {
-  final prefs = await ref.watch(sharedPreferencesProvider.future);
   final apiClient = ref.watch(apiClientProvider);
   return AuthRepositoryImpl(
     remote: AuthRemoteDataSource(apiClient),
-    storage: StorageService(prefs),
+    storage: await ref.watch(storageServiceProvider.future),
     apiClient: apiClient,
   );
 });
@@ -36,13 +33,8 @@ class AuthController extends AsyncNotifier<AuthState> {
     ref.read(wsClientProvider).setCallbacks(
       onKicked: (_) => _forceGuest(),
     );
-    SharedPreferences prefs;
-    try {
-      prefs = await ref.watch(sharedPreferencesProvider.future);
-    } catch (_) {
-      return AuthState.guest;
-    }
-    final token = StorageService(prefs).token;
+    final storage = await ref.watch(storageServiceProvider.future);
+    final token = await storage.token();
     if (token == null || token.isEmpty) return AuthState.guest;
 
     final repository = await ref.watch(authRepositoryProvider.future);
@@ -109,8 +101,8 @@ class AuthController extends AsyncNotifier<AuthState> {
 
   /// 与 logout 的区别：不请求服务端（令牌已被撤销），只清本地状态。
   Future<void> _forceGuest() async {
-    final prefs = await ref.read(sharedPreferencesProvider.future);
-    await StorageService(prefs).clearToken();
+    final storage = await ref.read(storageServiceProvider.future);
+    await storage.clearToken();
     ref.read(apiClientProvider).clearToken();
     ref.read(wsClientProvider).disconnect();
     if (!state.isLoading) state = const AsyncData(AuthState.guest);

@@ -54,7 +54,7 @@ lib/
 
 - `presentation` 只依赖 `domain` 的抽象，不直接引用 `data` 的实现细节
 - 模块间不直接 import 内部文件，通过路由或 Provider 通信
-- 技术选型：Riverpod（状态管理 + 依赖注入）、go_router（路由）、dio（网络）、shared_preferences（本地存储）
+- 技术选型：Riverpod（状态管理 + 依赖注入）、go_router（路由）、dio（网络）、shared_preferences（非敏感偏好）+ flutter_secure_storage（访问令牌）
 
 ## UI 与移动端交互
 
@@ -93,7 +93,7 @@ lib/
 接口契约来自服务端 `docs/后端需求规格.md`（接口字段权威）与 `docs/客户端接入指南.md`（多端登录/令牌/WS/会话/版本协商）：https://github.com/modern-day-team/modern-chat-new/tree/main/docs
 
 - REST base URL 与 WS 地址集中在 `lib/core/network/network_config.dart`，默认指向 Android 模拟器的 `10.0.2.2:8080`，真机/生产部署需替换。
-- 认证：登录/注册返回 `{token, user}`，token 存本地并在每次请求注入 `Authorization: Bearer <token>`；启动用 `/api/me` 恢复会话。
+- 认证：登录/注册返回 `{token, user}`，token 存**系统安全存储**（Android Keystore / iOS Keychain，`flutter_secure_storage`）并在每次请求注入 `Authorization: Bearer <token>`；首次启动会把旧版 SharedPreferences 的明文令牌迁移到安全存储并删除旧值。启动用 `/api/me` 恢复会话。
 - 领域模型位于 `lib/core/model/`，字段与 API §13 对齐，JSON 解析统一走 `json_helpers.dart` 兼容数字/字符串 ID。
 - 实时消息：`WsClient` 实现 `/ws?token=` 握手、25 秒心跳及 8 种上行帧；`message`/`recall`/`message_update` 等下行帧在 `chat_providers.dart` 就地更新状态，消息发送使用 clientMsgId 乐观消息。
 - 范围：当前已覆盖认证、会话列表、消息收发、联系人/好友申请、设置与退出；群管理、文件上传、搜索消息详情、管理后台等接口尚未做 UI。
