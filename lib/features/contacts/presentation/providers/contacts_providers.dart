@@ -1,16 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/model/models.dart';
-import '../../../../core/network/network.dart';
-import '../../data/datasources/contacts_remote_datasource.dart';
-import '../../data/repositories/contacts_repository_impl.dart';
-import '../../domain/repositories/contacts_repository.dart';
-
-final contactsRepositoryProvider = Provider<ContactsRepository>((ref) {
-  return ContactsRepositoryImpl(
-    ContactsRemoteDataSource(ref.watch(apiClientProvider)),
-  );
-});
+import '../../../../di/repository_providers.dart' show contactsRepositoryProvider;
+export '../../../../di/repository_providers.dart' show contactsRepositoryProvider;
 
 final friendListProvider =
     AsyncNotifierProvider<FriendListController, List<FriendItem>>(

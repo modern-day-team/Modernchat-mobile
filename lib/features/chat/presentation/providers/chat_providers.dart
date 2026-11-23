@@ -4,14 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/model/models.dart';
 import '../../../../core/network/network.dart';
+import '../../../../di/repository_providers.dart' show chatRepositoryProvider;
+export '../../../../di/repository_providers.dart' show chatRepositoryProvider;
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../data/datasources/chat_remote_datasource.dart';
-import '../../data/repositories/chat_repository_impl.dart';
-import '../../domain/repositories/chat_repository.dart';
-
-final chatRepositoryProvider = Provider<ChatRepository>((ref) {
-  return ChatRepositoryImpl(ChatRemoteDataSource(ref.watch(apiClientProvider)));
-});
 
 class ClientMessage {
   const ClientMessage({

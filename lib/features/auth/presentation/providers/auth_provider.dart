@@ -2,20 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/network.dart';
 import '../../../../core/storage/storage_providers.dart';
-import '../../data/datasources/auth_remote_datasource.dart';
-import '../../data/repositories/auth_repository_impl.dart';
+import '../../../../di/repository_providers.dart' show authRepositoryProvider;
 import '../../domain/entities/app_user.dart';
-import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/login_usecase.dart';
-
-final authRepositoryProvider = FutureProvider<AuthRepository>((ref) async {
-  final apiClient = ref.watch(apiClientProvider);
-  return AuthRepositoryImpl(
-    remote: AuthRemoteDataSource(apiClient),
-    storage: await ref.watch(storageServiceProvider.future),
-    apiClient: apiClient,
-  );
-});
 
 final loginUseCaseProvider = FutureProvider<LoginUseCase>((ref) async {
   final repository = await ref.watch(authRepositoryProvider.future);

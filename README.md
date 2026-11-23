@@ -55,6 +55,7 @@ lib/
 - `presentation` 只依赖 `domain` 的抽象，不直接引用 `data` 的实现细节
 - 模块间不直接 import 内部文件，通过路由或 Provider 通信
 - 技术选型：Riverpod（状态管理 + 依赖注入）、go_router（路由）、dio（网络）、shared_preferences（非敏感偏好）+ flutter_secure_storage（访问令牌）
+- DI 组合根：`lib/di/repository_providers.dart` 是唯一组装 RepositoryImpl / RemoteDataSource 的地方，presentation 只依赖 domain 抽象。服务地址通过 `--dart-define=MC_API_HOST=... --dart-define=MC_WS_HOST=...` 注入，默认 Android 模拟器 `10.0.2.2:8080`
 
 ## UI 与移动端交互
 

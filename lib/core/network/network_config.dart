@@ -1,10 +1,13 @@
 import 'dart:io';
 
-/// 开发环境 API 地址。Android 模拟器通过 10.0.2.2 访问宿主机。
-/// 真机或生产环境请替换为实际服务地址。
-const String apiBaseUrl = 'http://10.0.2.2:8080/api';
+/// API 地址：默认 Android 模拟器通过 10.0.2.2 访问宿主机；
+/// 真机/生产用 `--dart-define=MC_API_HOST=https://chat.example.com` 覆盖，
+/// 不再为每个环境改代码。
+const String _host = String.fromEnvironment('MC_API_HOST', defaultValue: 'http://10.0.2.2:8080');
+const String _wsHost = String.fromEnvironment('MC_WS_HOST', defaultValue: 'ws://10.0.2.2:8080');
 
-const String wsBaseUrl = 'ws://10.0.2.2:8080/ws';
+String get apiBaseUrl => '$_host/api';
+String get wsBaseUrl => '$_wsHost/ws';
 
 /// 无 Origin 的原生客户端不受服务端 Origin 白名单限制。
 const Duration wsHeartbeatInterval = Duration(seconds: 25);
