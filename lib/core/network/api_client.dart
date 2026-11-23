@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import 'api_exception.dart';
+import 'network_config.dart';
 
 class ApiClient {
   ApiClient({required String baseUrl, String? token})
@@ -10,7 +11,10 @@ class ApiClient {
           baseUrl: baseUrl,
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 20),
-          headers: const {'Content-Type': 'application/json'},
+          headers: <String, dynamic>{
+            'Content-Type': 'application/json',
+            ...ClientIdentity.headers,
+          },
         )) {
     if (token != null) setToken(token);
     _dio.interceptors.add(InterceptorsWrapper(

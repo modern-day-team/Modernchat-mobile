@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/model/models.dart';
+import '../../../../core/network/network.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../../core/ui/ui.dart';
@@ -14,6 +15,7 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authControllerProvider).value?.user;
     final themeMode = ref.watch(themeModeProvider).value ?? ThemeMode.system;
+    final version = ref.watch(versionCheckProvider).value;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -61,8 +63,8 @@ class SettingsPage extends ConsumerWidget {
                   child: _row(
                     icon: Icons.info_outline,
                     label: '关于 Modernchat',
-                    value: '1.0.0',
-                    onTap: () => _showAbout(context),
+                    value: ClientIdentity.appVersion,
+                    onTap: () => _showAbout(context, version),
                   ),
                 ),
                 const SizedBox(height: AppTokens.spaceXl),
@@ -293,7 +295,7 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _showAbout(BuildContext context) async {
+  Future<void> _showAbout(BuildContext context, VersionCheck? version) async {
     await showModalBottomSheet<void>(
       context: context,
       builder: (context) {
@@ -314,11 +316,22 @@ class SettingsPage extends ConsumerWidget {
                 Text('Modernchat', style: theme.textTheme.titleLarge),
                 const SizedBox(height: AppTokens.spaceXs),
                 Text(
-                  '版本 1.0.0 · 移动优先',
+                  '版本 ${ClientIdentity.appVersion} · 移动优先',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
+                if (version?.upgradeRequired ?? false)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppTokens.spaceSm),
+                    child: Text(
+                      version?.message ?? '有新版本可用，请升级后使用',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

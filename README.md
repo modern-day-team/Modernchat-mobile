@@ -90,7 +90,7 @@ lib/
 
 ## API 对接
 
-接口契约来自服务端 `docs/API文档.md`：https://github.com/modern-day-team/modern-chat-new/blob/main/docs/API%E6%96%87%E6%A1%A3.md
+接口契约来自服务端 `docs/后端需求规格.md`（接口字段权威）与 `docs/客户端接入指南.md`（多端登录/令牌/WS/会话/版本协商）：https://github.com/modern-day-team/modern-chat-new/tree/main/docs
 
 - REST base URL 与 WS 地址集中在 `lib/core/network/network_config.dart`，默认指向 Android 模拟器的 `10.0.2.2:8080`，真机/生产部署需替换。
 - 认证：登录/注册返回 `{token, user}`，token 存本地并在每次请求注入 `Authorization: Bearer <token>`；启动用 `/api/me` 恢复会话。

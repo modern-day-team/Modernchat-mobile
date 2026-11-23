@@ -34,6 +34,7 @@ class WsClient {
       StreamController<WsEvent>.broadcast();
   void Function()? _onConnected;
   void Function(Object error)? _onError;
+  void Function(String reason)? _onKicked;
 
   Stream<WsEvent> get events => _events.stream;
 
@@ -42,14 +43,20 @@ class WsClient {
   void setCallbacks({
     void Function()? onConnected,
     void Function(Object error)? onError,
+    void Function(String reason)? onKicked,
   }) {
     _onConnected = onConnected;
     _onError = onError;
+    _onKicked = onKicked;
   }
 
   void connect(String token) {
     disconnect();
-    final uri = Uri.parse('$wsBaseUrl?token=${Uri.encodeComponent(token)}');
+    final query = <String, String>{
+      'token': token,
+      ...ClientIdentity.wsQuery,
+    };
+    final uri = Uri.parse('$wsBaseUrl?${Uri(queryParameters: query)}');
     try {
       _channel = WebSocketChannel.connect(uri);
       _onConnected?.call();
@@ -73,6 +80,12 @@ class WsClient {
       // dart:convert 避免顶层 import 冲突，使用 StrictMap 解析。
       final decoded = _decodeJson(raw);
       if (decoded != null) {
+        if (decoded['type'] == 'kicked') {
+          final reason = decoded['reason'] as String? ?? '登录状态已失效';
+          disconnect();
+          _onKicked?.call(reason);
+          return;
+        }
         _events.add(WsEvent.fromJson(decoded));
       }
     } catch (_) {

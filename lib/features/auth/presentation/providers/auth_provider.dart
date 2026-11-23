@@ -31,6 +31,11 @@ final authControllerProvider =
 class AuthController extends AsyncNotifier<AuthState> {
   @override
   Future<AuthState> build() async {
+    // 服务端强制下线（封禁 / 重置密码 / 单设备撤销）：清本地 token 并回到登录态。
+    // 必须在任何网络调用前注册，避免首帧 kicked 被漏掉。
+    ref.read(wsClientProvider).setCallbacks(
+      onKicked: (_) => _forceGuest(),
+    );
     SharedPreferences prefs;
     try {
       prefs = await ref.watch(sharedPreferencesProvider.future);
@@ -94,6 +99,15 @@ class AuthController extends AsyncNotifier<AuthState> {
     await repository.logout();
     ref.read(wsClientProvider).disconnect();
     state = const AsyncData(AuthState.guest);
+  }
+
+  /// 与 logout 的区别：不请求服务端（令牌已被撤销），只清本地状态。
+  Future<void> _forceGuest() async {
+    final prefs = await ref.read(sharedPreferencesProvider.future);
+    await StorageService(prefs).clearToken();
+    ref.read(apiClientProvider).clearToken();
+    ref.read(wsClientProvider).disconnect();
+    if (!state.isLoading) state = const AsyncData(AuthState.guest);
   }
 
   Future<void> _connectWs(String token) async {
