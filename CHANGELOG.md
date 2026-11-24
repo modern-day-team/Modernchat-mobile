@@ -2,6 +2,7 @@
 
 ## [未发布]
 
+- fix(android)：移除 Flutter 脚手架 TODO 与 debug key 签名兜底；release 默认未签名，提供本地 `android/key.properties` 时才使用正式签名，避免 release 包携带 debug 签名
 - docs(审计整改)：补 `.gitattributes`（仓库强制 LF，与项目组其余仓库一致）；新增本 CHANGELOG，补齐版本变更记录
 
 ## 1.0.0+1

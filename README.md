@@ -28,6 +28,8 @@ flutter build apk --release --split-per-abi  # Android 按 ABI 拆分安装包
 flutter build ios --release             # iOS（需在 macOS 上执行）
 ```
 
+Android release 默认产物为 **unsigned**（CI  artifact 同理，不会用 debug key 签名）。正式发布需在本地 `android/key.properties` 提供 `storeFile` / `storePassword` / `keyAlias` / `keyPassword`；该文件与 keystore 均已被 `.gitignore`，严禁入库。
+
 ## 架构
 
 采用 Feature-First + 分层结构，遵循高内聚低耦合：
