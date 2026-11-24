@@ -28,7 +28,14 @@ flutter build apk --release --split-per-abi  # Android 按 ABI 拆分安装包
 flutter build ios --release             # iOS（需在 macOS 上执行）
 ```
 
-Android release 默认产物为 **unsigned**（CI  artifact 同理，不会用 debug key 签名）。正式发布需在本地 `android/key.properties` 提供 `storeFile` / `storePassword` / `keyAlias` / `keyPassword`；该文件与 keystore 均已被 `.gitignore`，严禁入库。
+Android release 默认产物为 **unsigned**（普通 CI artifact 同理，不会用 debug key 签名）。本地正式发布需在 `android/key.properties` 提供 `storeFile` / `storePassword` / `keyAlias` / `keyPassword`；该文件与 keystore 均已被 `.gitignore`，严禁入库。
+
+`v*` tag 或手动触发 `.github/workflows/release.yml` 生成正式签名包，所需 Secrets：
+
+- Android：`ANDROID_KEYSTORE_BASE64`、`ANDROID_STORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`
+- iOS：`IOS_CERTIFICATE_P12_BASE64`、`IOS_CERTIFICATE_PASSWORD`、`IOS_PROVISIONING_PROFILE_BASE64`、`APPLE_TEAM_ID`；可选 `IOS_KEYCHAIN_PASSWORD`、`IOS_BUNDLE_ID`、`IOS_PROVISIONING_PROFILE_NAME`
+
+任一签名 Secret 缺失时 release 工作流失败，不回退到 debug/unsigned 包。`ios/ExportOptions.plist` 是模板，CI 会在运行时替换 team id / bundle id / profile name。
 
 ## 架构
 
