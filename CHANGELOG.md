@@ -2,6 +2,7 @@
 
 ## [未发布]
 
+- feat(契约)：接入主仓库跨端契约金样本——`test/fixtures/contracts/ws_frames.json` 为 Modernchat-new `contracts/` 的同步副本，新增 `test/contract_frames_test.dart` 金样本驱动回归测试（服务端全帧解析为 `WsEvent` 且类型保持、message/reaction/error/kicked 字段逐一核对、上行帧契约键齐全）；CI verify 任务新增指纹校验（LF 归一化 SHA-256），副本被手改而指纹未更新会挂 CI。同步流程见 `test/fixtures/contracts/README.md`，契约总览见主仓库 `docs/项目组架构与集成.md`
 - fix(android)：移除 Flutter 脚手架 TODO 与 debug key 签名兜底；release 默认未签名，提供本地 `android/key.properties` 时才使用正式签名，避免 release 包携带 debug 签名
 - docs(审计整改)：补 `.gitattributes`（仓库强制 LF，与项目组其余仓库一致）；新增本 CHANGELOG，补齐版本变更记录
 
